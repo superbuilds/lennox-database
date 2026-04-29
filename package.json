@@ -1,0 +1,23 @@
+{
+  "name": "lennox-database",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "One-shot migration tool for Lennox Lending deal pipeline data from Google Sheets CSVs into Supabase, with FollowUpBoss Person matching.",
+  "scripts": {
+    "migrate": "tsx src/main.ts",
+    "migrate:write": "tsx src/main.ts --write",
+    "validate": "tsx src/validate.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5",
+    "papaparse": "^5.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/papaparse": "^5.3.14",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}
