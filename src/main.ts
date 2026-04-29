@@ -218,8 +218,24 @@ async function run(write: boolean) {
   }
   if (dealResult.stats.rowsMissingEntryDate > 0) {
     console.log(
-      `  WARNING: ${dealResult.stats.rowsMissingEntryDate} rows missing/unparseable Deal Pipeline Entry Date (placeholder 1970-01-01 used)`,
+      `  Deal Pipeline Entry Date missing in CSV: ${dealResult.stats.rowsMissingEntryDate}`,
     );
+    console.log(
+      `    Recovered from quote/lost dates:    ${dealResult.stats.rowsEntryDateFallback}`,
+    );
+    if (dealResult.stats.rowsEntryDateUnresolved > 0) {
+      console.log(
+        `    No other dates available, defaulted to today: ${dealResult.stats.rowsEntryDateUnresolved}`,
+      );
+    }
+  }
+
+  console.log("\n  Pipeline stage distribution:");
+  const stageEntries = Array.from(dealResult.stats.pipelineStageCounts.entries()).sort(
+    (a, b) => b[1] - a[1],
+  );
+  for (const [stage, count] of stageEntries) {
+    console.log(`    ${stage}: ${count}`);
   }
 
   console.log("\n  Sales rep mapping:");

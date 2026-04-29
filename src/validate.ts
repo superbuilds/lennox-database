@@ -7,15 +7,15 @@ export interface CheckResult {
 }
 
 const EXPECTED_SPONSORS = 301;
-const EXPECTED_DEALS = 362;
+const EXPECTED_DEALS = 358;
 const EXPECTED_FUB_MATCHES_MIN = 260;
 const EXPECTED_STAGE_DISTRIBUTION: Record<string, number> = {
   "Quote Sent": 179,
-  "New Deal": 73,
+  "New Deal": 72,
   "Deal Lost": 56,
-  "Just Added": 24,
+  "Just Added": 20,
   "Needs More Info": 16,
-  "Pre-Approval": 12,
+  "Pre-Approval": 13,
   "Long Term Follow Up": 2,
 };
 

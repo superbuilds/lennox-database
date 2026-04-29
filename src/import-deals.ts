@@ -23,6 +23,10 @@ import {
   type QuoteStage,
 } from "./normalize.js";
 
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export interface DealCsvRow {
   "Deal Sponsor"?: string;
   "Deal Address"?: string;
@@ -86,6 +90,8 @@ export interface DealNormalizationStats {
   pipelineStageCounts: Map<DealPipelineStage, number>;
   unknownPipelineStages: Map<string, number>;
   rowsMissingEntryDate: number;
+  rowsEntryDateFallback: number;
+  rowsEntryDateUnresolved: number;
   orphans: PreparedDeal[];
 }
 
@@ -127,6 +133,8 @@ export function buildDeals(
     pipelineStageCounts: new Map(),
     unknownPipelineStages: new Map(),
     rowsMissingEntryDate: 0,
+    rowsEntryDateFallback: 0,
+    rowsEntryDateUnresolved: 0,
     orphans: [],
   };
 
@@ -137,9 +145,26 @@ export function buildDeals(
     const sponsorKey = sponsorRaw.toLowerCase();
     const sponsorId = sponsorNameToId.get(sponsorKey) ?? null;
 
-    const entryDate = parseDate(r["Deal Pipeline Entry Date"]);
+    let entryDate = parseDate(r["Deal Pipeline Entry Date"]);
+    let entryDateNote: string | null = null;
     if (!entryDate) {
+      const candidates = [
+        parseDate(r["Date Quoted"]),
+        parseDate(r["Date Quote Accepted"]),
+        parseDate(r["Date Quote Lost"]),
+        parseDate(r["Date Deal Lost"]),
+      ].filter((d): d is string => d !== null);
       stats.rowsMissingEntryDate++;
+      if (candidates.length > 0) {
+        candidates.sort();
+        entryDate = candidates[0]!;
+        stats.rowsEntryDateFallback++;
+        entryDateNote = `[migration] entry date missing in source; derived from earliest quote/lost date (${entryDate})`;
+      } else {
+        entryDate = todayIso();
+        stats.rowsEntryDateUnresolved++;
+        entryDateNote = `[migration] entry date missing in source and no other dates available; defaulted to migration date (${entryDate})`;
+      }
     }
 
     const stageRaw = trimOrNull(r["Deal Pipeline Stage"]);
@@ -174,7 +199,7 @@ export function buildDeals(
       sponsor_legacy_name: sponsorRaw,
       sponsor_id: sponsorId,
       deal_address: trimOrNull(r["Deal Address"]),
-      deal_pipeline_entry_date: entryDate ?? "1970-01-01",
+      deal_pipeline_entry_date: entryDate,
       deal_lender: normalizeLender(r["Deal Lender"]),
       deal_transaction_type: normalizeTransactionType(r["Deal Transaction Type"]),
       deal_property_type: normalizePropertyType(r["Deal Property Type"]),
@@ -182,7 +207,11 @@ export function buildDeals(
       deal_pipeline_stage: finalStage,
       deal_lost_reason: normalizeLostReason(r["Deal Lost Reason"]),
       deal_lost_notes: trimOrNull(r["Deal Lost Notes"]),
-      deal_notes: trimOrNull(r["Deal Notes"]),
+      deal_notes: (() => {
+        const base = trimOrNull(r["Deal Notes"]);
+        if (!entryDateNote) return base;
+        return base ? `${base}\n\n${entryDateNote}` : entryDateNote;
+      })(),
       date_deal_lost: parseDate(r["Date Deal Lost"]),
       loan_amount: parseMoney(r["Loan Amount"]),
       origination_pct: parsePercent(r["Origination %"]),
