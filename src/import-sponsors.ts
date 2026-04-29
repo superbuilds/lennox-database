@@ -168,13 +168,47 @@ export function buildSponsors(
   });
 
   const dedupNames = Array.from(dupes);
+  const collapsed = collapseDuplicates(prepared);
 
   return {
     rows,
-    prepared,
+    prepared: collapsed,
     matchCounts,
     dedupNames,
     unmappedRepCount,
     repCounts,
   };
+}
+
+function collapseDuplicates(rows: PreparedSponsor[]): PreparedSponsor[] {
+  const groups = new Map<string, PreparedSponsor[]>();
+  for (const r of rows) {
+    const key = r.legacy_sheet_name.trim().toLowerCase();
+    const existing = groups.get(key);
+    if (existing) existing.push(r);
+    else groups.set(key, [r]);
+  }
+  const out: PreparedSponsor[] = [];
+  for (const group of groups.values()) {
+    if (group.length === 1) {
+      out.push(group[0]!);
+      continue;
+    }
+    const score = (s: PreparedSponsor) =>
+      (s.fub_person_id ? 1000 : 0) +
+      (s.email ? 1 : 0) +
+      (s.phone ? 1 : 0) +
+      (s.sales_rep_id ? 1 : 0);
+    const sorted = [...group].sort((a, b) => score(b) - score(a));
+    const winner = { ...sorted[0]! };
+    const allNotes = group
+      .map((g) => g.import_notes)
+      .filter((n): n is string => !!n);
+    const dupNote = `Collapsed ${group.length} duplicate sponsors.csv rows for "${winner.legacy_sheet_name}"`;
+    const combinedNotes = [dupNote, ...allNotes];
+    winner.import_notes = combinedNotes.join("; ");
+    winner.needs_dedup_review = true;
+    out.push(winner);
+  }
+  return out;
 }

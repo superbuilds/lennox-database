@@ -6,7 +6,7 @@ export interface CheckResult {
   detail: string;
 }
 
-const EXPECTED_SPONSORS = 301;
+const EXPECTED_SPONSORS = 299;
 const EXPECTED_DEALS = 358;
 const EXPECTED_FUB_MATCHES_MIN = 260;
 const EXPECTED_STAGE_DISTRIBUTION: Record<string, number> = {
